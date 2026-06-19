@@ -15,33 +15,38 @@ use GeorgRinger\NewsTagsuggest\Repository\SuggestRegistryRepository;
 use TYPO3\CMS\Backend\Form\Wizard\SuggestWizardDefaultReceiver;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-class  SuggestWizardReceiver extends SuggestWizardDefaultReceiver
+class SuggestWizardReceiver extends SuggestWizardDefaultReceiver
 {
 
-    public function queryTable(&$params, $recursionCounter = 0)
+    public function queryTable(array &$params, int $recursionCounter = 0): array
     {
         $rows = parent::queryTable($params, $recursionCounter);
 
-        $searchString = strtolower($params['value']);
+        $searchString = strtolower((string)$params['value']);
         $matchRow = array_filter($rows, static function ($value) use ($searchString) {
-            return strtolower($value['label']) === $searchString;
+            return strtolower((string)$value['label']) === $searchString;
         });
 
         if (empty($matchRow)) {
             $registry = $this->getSuggestRepository();
 
-            $newUid = SuggestRegistryRepository::ID_PREFIX . $registry->set($params['value']);
+            $value = (string)$params['value'];
+            $newUid = SuggestRegistryRepository::ID_PREFIX . $registry->set($value);
+            $label = strip_tags(sprintf(
+                $this->getLanguageService()->sL('LLL:EXT:news/Resources/Private/Language/locallang_be.xlf:tag_suggest'),
+                $value
+            ));
 
             $rows[$this->table . '_' . $newUid] = [
-                'label' => strip_tags(sprintf($this->getLanguageService()->sL('LLL:EXT:news/Resources/Private/Language/locallang_be.xlf:tag_suggest'), $params['value'])),
-                'title' =>  strip_tags(sprintf($this->getLanguageService()->sL('LLL:EXT:news/Resources/Private/Language/locallang_be.xlf:tag_suggest'), $params['value'])),
+                'label' => $label,
+                'title' => $label,
                 'path' => '',
                 'icon' => [
                     'identifier' => 'ext-news-tag',
                     'overlay' => null,
                 ],
                 'table' => $this->table,
-                'uid' => $newUid ,
+                'uid' => $newUid,
             ];
         }
 
